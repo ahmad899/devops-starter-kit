@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: docker/jenkins
+      dockerfile: Dockerfile
+      target: jeknins
+    restart: on-failure
+    environment:
+      - DOCKER_HOST=tcp://docker:2376 
+      - DOCKER_CERT_PATH=/certs/client 
+      - DOCKER_TLS_VERIFY=1
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+    networks:
+      - jenkins
+
+  docker:
+    image: docker:25.0.1-dind-alpine3.19
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:rw
+    networks:
+      - jenkins
+    
+  agent1:
+    build:
+      context: docker/jenkins
+      dockerfile: Dockerfile
+      target: jeknins-agent
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=${AGENT_SSH}
+      - DOCKER_HOST=tcp://docker:2376 
+      - DOCKER_CERT_PATH=/certs/client 
+      - DOCKER_TLS_VERIFY=1
+    volumes:
+      - jenkins-docker-certs:/certs/client:rw
+    networks:
+      - jenkins
+
+  agent2:
+    build:
+      context: docker/jenkins
+      dockerfile: Dockerfile
+      target: jeknins-agent
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=${AGENT_SSH}
+      - DOCKER_HOST=tcp://docker:2376 
+      - DOCKER_CERT_PATH=/certs/client 
+      - DOCKER_TLS_VERIFY=1
+    volumes:
+      - jenkins-docker-certs:/certs/client:rw
+    networks:
+      - jenkins
+
+
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:
+
+
+
+  
